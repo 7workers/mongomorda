@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <title>Mongo Morda Demo</title>
+
+</head>
+<body>
+<h1>MONGO MORDA</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form id="form1">
+            <div class="form-group">
+                <label for="f1">EMAIL:</label>
+                <input id="f1" type="email" value="ha" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="text.field1">TEXT:</label>
+                <input id="text.field1" type="text" value="" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="ip">IPv4:</label>
+                <input id="ip" type="text" value="" class="form-control" />
+            </div>
+            <div class="form-group">
+                <!--suppress HtmlFormInputWithoutLabel -->
+                <input id="q" type="text" class="form-control" value="{}" placeholder="{}"/>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let form = $('#form1');
+
+    let morda1;
+
+    $( document ).ready(function() {
+
+        morda1 = new MongoMorda('form1');
+        morda1.addField('f1');
+        morda1.addField('ip', {type: 'ipv4/long'});
+        morda1.addField('text.field1', {type: '$regex'});
+
+        //form.find('#f1').on('change keyup blur', handleInputChange);
+        //form.find('#q').on('change keyup blur', handleInputChange);
+    });
+
+    class MongoMorda {
+        form;
+        arFields = {};
+
+        constructor(id) {
+            this.form = $('#'+id);
+            this.addField('q');
+        }
+
+        addField(fieldId, options) {
+            let that = this;
+
+            if( options === undefined )         options = {};
+            if( options.type === undefined )    options.type = 'string';
+
+            switch (options.type) {
+                case "$regex":
+                    options.regexOptions = options.regexOptions !== undefined ? options.regexOptions : 'i';
+                    break;
+            }
+
+            options.element = this.form.find('#' + fieldId.replace(/\./, '\\.'));
+
+            that.arFields[fieldId] = options;
+            that.arFields[fieldId].element.on('change keyup blur', function (e) { that.handleInputChange(e, that);});
+
+        }
+
+        handleInputChange(e, that) {
+            let value = e.target.value;
+            let field = e.target.id;
+
+            that.updateQ(field, value);
+        }
+
+        updateQ(field, value) {
+            let q_string = this.form.find('#q').val();
+            let that = this;
+            try {
+                let q = JSON.parse(q_string);
+
+                //console.log(q_string);
+                //console.log(q);
+
+                if( field !== 'q' ) {
+                    if( value !== '') {
+
+                        switch (that.arFields[field].type) {
+                            case '$regex':
+                                q[field] = {"$regex":value};
+                                if( that.arFields[field].regexOptions !== undefined || that.arFields[field].regexOptions !== null) {
+                                    q[field]['$options'] = that.arFields[field].regexOptions;
+                                }
+                                break;
+                            case 'ipv4/long':
+                                q[field] = that.ip2int(value);
+                                break;
+                            case 'string':
+                            default:
+                                q[field] = value;
+                                break;
+                        }
+
+                    } else {
+                        delete q[field];
+                    }
+                } else {
+                    $.each(q, function (k, v) {
+                        if( that.arFields[k] === undefined) {
+                            return;
+                        }
+                        //console.log(v);
+
+                        switch (that.arFields[k].type) {
+                            case 'ipv4/long':
+                                that.arFields[k].element.val(that.int2ip(v));
+                                break;
+                            case '$regex':
+                                that.arFields[k].element.val(v['$regex']);
+                                break;
+                            case 'string':
+                            default:
+                                that.arFields[k].element.val(v);
+                                break;
+                        }
+
+                    });
+
+                    console.log(that.arFields);
+
+                    $.each(that.arFields, function (k,v) {
+                        if( q[k] !== undefined || k === 'q' ) {
+                            return;
+                        }
+                        that.arFields[k].element.val('');
+                    });
+                }
+
+                this.form.find('#q').val(JSON.stringify(q));
+
+                this.form.find('#q').removeClass('is-invalid');
+            } catch (e) {
+                console.log(e);
+                this.form.find('#q').addClass('is-invalid');
+            }
+        }
+
+        setQ__regex(q, value) {
+
+        }
+
+        setField__regex(value) {
+
+        }
+
+        int2ip (ipInt) {
+            return ( (ipInt>>>24) +'.' + (ipInt>>16 & 255) +'.' + (ipInt>>8 & 255) +'.' + (ipInt & 255) );
+        }
+
+        ip2int(ip) {
+            return ip.split('.').reduce(function(ipInt, octet) { return (ipInt<<8) + parseInt(octet, 10)}, 0) >>> 0;
+        }
+
+    }
+
+
+
+</script>
+
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+</body>
+</html>
