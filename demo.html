@@ -25,7 +25,7 @@
 
                     <div class="form-group">
                         <label for="signal">SIGNAL</label>
-                        <select class="form-control" id="signal">
+                        <select class="form-control form-control-sm" id="signal">
                             <option value="">ALL</option>
                             <option value="1">GOOD</option>
                             <option value="2">BAD</option>
@@ -34,13 +34,13 @@
                     </div>
                     <div class="form-group">
                         <label for="addField"></label>
-                        <select class="form-control" id="addField">
+                        <select class="form-control form-control-sm" id="addField">
                             <option value="">ADD FIELD...</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <!--suppress HtmlFormInputWithoutLabel -->
-                        <input id="q" name="q"  type="text" class="form-control" value="{}" placeholder=""/>
+                        <input id="q" name="q"  type="text" class="form-control form-control-sm" value="{}" placeholder=""/>
                     </div>
 
                     <button type="submit" class="btn btn-primary float-right">SUBMIT</button>
@@ -80,9 +80,25 @@
 
 <div style="display: block; margin-top: 700px;" id="field-templates">
 
+    <div class="form-group" id="mongomorda-tpl-signal">
+        <div class="input-group input-group-sm">
+            <div class="input-group-prepend">
+                <span class="input-group-text">SIGNAL</span>
+            </div>
+            <select class="form-control" data-field-name="S" data-label="SIGNAL">
+                <option value="">ALL</option>
+                <option value="0">PASSED</option>
+                <option value="1">BLOCKED</option>
+                <option value="2">FLAGGED</option>
+                <option value="3">FRAUDED</option>
+                <option data-raw-value-json='{"$in":["1","2","3"]}'>BLOCKED / FLAGGED / FRAUDED</option>
+            </select>
+            <div class="input-group-append"><button class="btn btn-outline-secondary" type="button">X</button></div>
+        </div>
+    </div>
 
     <div class="form-group" id="mongomorda-tpl-country-detected">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">COUNTRY DETECTED</span>
             </div>
@@ -94,24 +110,22 @@
     </div>
 
     <div class="form-group" id="mongomorda-tpl-gender">
-        <div class="input-group" >
+        <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">GENDER</span>
             </div>
-            <select class="custom-select" data-field-name="gender" data-label="GENDER">
+            <select class="form-control" data-field-name="gender" data-label="GENDER">
                 <option value="">ANY</option>
                 <option value="M">MALE</option>
                 <option value="F">FEMALE</option>
                 <option value="?">UNKNOWN</option>
             </select>
-            <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button">X</button>
-            </div>
+            <div class="input-group-append"><button class="btn btn-outline-secondary" type="button">X</button></div>
         </div>
     </div>
 
     <div class="form-group" id="mongomorda-tpl-email">
-        <div class="input-group" >
+        <div class="input-group input-group-sm" >
             <div class="input-group-prepend">
                 <span class="input-group-text">EMAIL (exact)</span>
             </div>
@@ -121,7 +135,7 @@
     </div>
 
     <div class="form-group" id="mongomorda-tpl-email-partial">
-        <div class="input-group" >
+        <div class="input-group input-group-sm" >
             <div class="input-group-prepend">
                 <span class="input-group-text">EMAIL (partial)</span>
             </div>
@@ -131,14 +145,14 @@
     </div>
 
     <div class="form-group" id="mongomorda-tpl-text">
-        <div class="form-group">
+        <div class="form-group input-group-sm">
             <label for="text.field1">TEXT</label>
             <input id="text.field1" type="text" value="" class="form-control" data-field-name="text" data-transform="regex"/>
         </div>
     </div>
 
     <div class="form-group" id="mongomorda-tpl-ipv4">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">PRIMARY IPv4</span>
             </div>
@@ -153,7 +167,7 @@
     </div>
 
     <div class="form-group" id="mongomorda-tpl-affiliate">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">AFFILIATE</span>
             </div>
@@ -165,7 +179,7 @@
     </div>
 
     <div class="form-group" id="mongomorda-tpl-has-affiliate">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">HAS AFFILIATE</span>
             </div>

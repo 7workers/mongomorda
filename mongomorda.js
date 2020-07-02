@@ -179,9 +179,20 @@ class MongoMorda {
         element.on('change keyup blur', function (e) {
             let value = e.target.value;
             let field = e.target.getAttribute('data-field-name');
+            let rawValueJson = e.target.getAttribute('data-raw-value-json');
 
-            if( e.target.type === 'checkbox' ) {
-                value = e.target.checked;
+            console.log(e);
+
+            switch (e.target.type) {
+                case 'checkbox':
+                    value = e.target.checked;
+                    break;
+                case 'select-one':
+                    let rawJson = e.target.selectedOptions[0].dataset['rawValueJson'];
+                    if( rawJson !== undefined ) {
+                        value = JSON.parse(rawJson);
+                    }
+                    break;
             }
 
             that.onFieldInputChange(field, value);
