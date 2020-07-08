@@ -33,14 +33,14 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="addField"></label>
-                        <select class="form-control form-control-sm" id="addField">
+                        <label for="addFieldCtrl"></label>
+                        <select class="form-control form-control-sm" id="addFieldCtrl">
                             <option value="">ADD FIELD...</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <!--suppress HtmlFormInputWithoutLabel -->
-                        <input id="q" name="q"  type="text" class="form-control form-control-sm" value="{}" placeholder=""/>
+                        <input id="q" name="q"  type="text" class="form-control form-control-sm" value="{}" placeholder="" style="font-family: monospace"/>
                     </div>
 
                     <button type="submit" class="btn btn-primary float-right">SUBMIT</button>
@@ -84,6 +84,13 @@
         <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">SIGNAL</span>
+                <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    EQUALS
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" data-mmorda-operator="$eq">EQUALS</a>
+                    <a class="dropdown-item" data-mmorda-operator="$ne">NOT EQUALS</a>
+                </div>
             </div>
             <select class="form-control" data-field-name="S" data-label="SIGNAL">
                 <option value="">ALL</option>
@@ -101,6 +108,7 @@
         <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">COUNTRY DETECTED</span>
+
             </div>
             <input type="text" value="" class="form-control" data-field-name="detected.location" data-transform="elemMatch" data-label="COUNTRY DETECTED"/>
             <div class="input-group-append">
@@ -109,10 +117,41 @@
         </div>
     </div>
 
+    <div class="form-group" id="mongomorda-tpl-folder">
+        <div class="input-group input-group-sm">
+            <div class="input-group-prepend">
+                <span class="input-group-text">FOLDER</span>
+                <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    ALL OF
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" data-mmorda-operator="$all">ALL OF</a>
+                    <a class="dropdown-item" data-mmorda-operator="$any">ANY OF</a>
+                </div>
+            </div>
+            <select class="form-control" data-field-name="folder" data-label="FOLDER" multiple>
+                <option value="">ANY</option>
+                <option value="M">INBOX</option>
+                <option value="F">DIRECT MESSAGES</option>
+                <option value="?">UPDATES</option>
+                <option value="?">SPAM</option>
+                <option value="?">NOTIFICATIONS</option>
+            </select>
+            <div class="input-group-append"><button class="btn btn-outline-secondary mmorda-remove-field" type="button">X</button></div>
+        </div>
+    </div>
+
     <div class="form-group" id="mongomorda-tpl-gender">
         <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">GENDER</span>
+                <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    EQUALS
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" data-mmorda-operator="$eq">EQUALS</a>
+                    <a class="dropdown-item" data-mmorda-operator="$ne">NOT EQUALS</a>
+                </div>
             </div>
             <select class="form-control" data-field-name="gender" data-label="GENDER">
                 <option value="">ANY</option>
@@ -120,34 +159,66 @@
                 <option value="F">FEMALE</option>
                 <option value="?">UNKNOWN</option>
             </select>
-            <div class="input-group-append"><button class="btn btn-outline-secondary" type="button">X</button></div>
+            <div class="input-group-append"><button class="btn btn-outline-secondary mmorda-remove-field" type="button">X</button></div>
         </div>
     </div>
 
     <div class="form-group" id="mongomorda-tpl-email">
         <div class="input-group input-group-sm" >
             <div class="input-group-prepend">
-                <span class="input-group-text">EMAIL (exact)</span>
+                <span class="input-group-text">EMAIL</span>
+                <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    CONTAINS STRING
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" data-mmorda-operator="$regex">CONTAINS STRING</a>
+                    <a class="dropdown-item" data-mmorda-operator="$eq">EXACT MATCH</a>
+                    <a class="dropdown-item" data-mmorda-operator="$regex^">STARTS WITH</a>
+                    <a class="dropdown-item" data-mmorda-operator="$regex$">ENDS WITH</a>
+                    <div role="separator" class="dropdown-divider"></div>
+                    <a class="dropdown-item" data-mmorda-operator="$regex/-i">CONTAINS STRING (CASE SENSITIVE)</a>
+                    <a class="dropdown-item" data-mmorda-operator="$regex^/-i">STARTS WITH (CS)</a>
+                    <a class="dropdown-item" data-mmorda-operator="$regex$/-i">ENDS WITH (CS)</a>
+                </div>
             </div>
-            <input type="email" value="" class="form-control" data-field-name="email" data-label="EMAIL (exact)"/>
-            <div class="input-group-append"><button class="btn btn-outline-secondary" type="button">X</button></div>
-        </div>
-    </div>
-
-    <div class="form-group" id="mongomorda-tpl-email-partial">
-        <div class="input-group input-group-sm" >
-            <div class="input-group-prepend">
-                <span class="input-group-text">EMAIL (partial)</span>
-            </div>
-            <input type="email" value="" class="form-control" data-field-name="email" data-label="EMAIL (partial)" data-transform="regex"/>
+            <input type="email" value="" class="form-control" data-field-name="email" data-label="EMAIL"/>
             <div class="input-group-append"><button class="btn btn-outline-secondary" type="button">X</button></div>
         </div>
     </div>
 
     <div class="form-group" id="mongomorda-tpl-text">
         <div class="form-group input-group-sm">
-            <label for="text.field1">TEXT</label>
-            <input id="text.field1" type="text" value="" class="form-control" data-field-name="text" data-transform="regex"/>
+            <label for="text.field1">SUBJECT</label>
+            <input id="text.field1" type="text" value="" class="form-control" data-field-name="text" data-transform="regex" data-label="SUBJECT"/>
+        </div>
+    </div>
+
+    <div class="form-group" id="mongomorda-tpl-ipv4_">
+        <div class="input-group input-group-sm">
+            <div class="input-group-prepend">
+                <span class="input-group-text">PRIMARY IPv4</span>
+                <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    EQUALS
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" data-mmorda-operator="$eq">EQUALS</a>
+                    <a class="dropdown-item" data-mmorda-operator="$ne">NOT EQUALS</a>
+                    <a class="dropdown-item" data-mmorda-operator="$in">IN ARRAY</a>
+                    <a class="dropdown-item" data-mmorda-operator="$nin">NOT IN ARRAY</a>
+                    <div role="separator" class="dropdown-divider"></div>
+                    <a class="dropdown-item" data-mmorda-operator="$lt">LESS THAN</a>
+                    <a class="dropdown-item" data-mmorda-operator="$lte">LESS OR EQUAL THAN</a>
+                    <a class="dropdown-item" data-mmorda-operator="$gt">GREATER THAN</a>
+                    <a class="dropdown-item" data-mmorda-operator="$gte">GREATER OR EQUAL THAN</a>
+                    <div role="separator" class="dropdown-divider"></div>
+                    <a class="dropdown-item" data-mmorda-operator="$regex">CONTAINS STRING</a>
+                    <a class="dropdown-item" data-mmorda-operator="$eq">EXACT MATCH</a>
+                    <a class="dropdown-item" data-mmorda-operator="$regex^">STARTS WITH</a>
+                    <a class="dropdown-item" data-mmorda-operator="$regex$">ENDS WITH</a>
+                </div>
+            </div>
+            <input type="text" value="" class="form-control" data-field-name="connectivity.primary.ipv4" data-transform="ipv4/long"  data-label="PRIMARY IPv4"/>
+            <div class="input-group-append"><button class="btn btn-outline-secondary mmorda-remove-field" type="button">X</button></div>
         </div>
     </div>
 
@@ -155,6 +226,13 @@
         <div class="input-group input-group-sm">
             <div class="input-group-prepend">
                 <span class="input-group-text">PRIMARY IPv4</span>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#">Action</a>
+                    <a class="dropdown-item" href="#">Another action</a>
+                    <a class="dropdown-item" href="#">Something else here</a>
+                    <div role="separator" class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#">Separated link</a>
+                </div>
             </div>
             <input type="text" value="" class="form-control" data-field-name="connectivity.primary.ipv4" data-transform="ipv4-long"  data-label="PRIMARY IPv4"/>
             <div class="input-group-append"><button class="btn btn-outline-secondary" type="button">X</button></div>
@@ -214,9 +292,7 @@
         //morda1.addField('signal', {type: 'int'});
 
         morda1.bindPredefinedSelector('predefined');
-        morda1.bindAddFieldControl('addField', 'field-templates');
-
-        morda1.addExtraField();
+        morda1.bindAddFieldControl('addFieldCtrl', 'field-templates');
 
         //morda1.reload();
 

@@ -4,25 +4,43 @@ class MongoMorda {
     fieldTemplateContainer;
     addFieldSelector;
 
+    static TRANSFORM_IPV4_2_LONG = 'ipv4/long';
+
     constructor(qElement) {
         this.qElement = qElement;
         let that = this;
         qElement.on('change keyup blur', function (e) {
             that.onQTextInputChange(e.target.value);
         });
-
-        //this.addField('q');
     }
 
+    // when typing directly in "q" input field
     onQTextInputChange( v ) {
         let that = this;
         try {
             let q = JSON.parse(v);
+            let prevValue = null;
 
             $.each(q, function (k, v) {
                 if (that.arFields[k] === undefined) {
                     return;
                 }
+                prevValue = that.arFields[k].element.data('prevQValue');
+                if( prevValue === v ) {
+                    return;
+                }
+
+                if( typeof v === "object" ) {
+
+                }
+
+                console.log('field update: ' + k + ' value: ' + v);
+
+                that.updateFieldControls(k, q);
+
+                return;
+                that.arFields[k].element.data('prevQValue', v);
+
                 that.arFields[k].element.val(that.transformData(q, k, v, true));
             });
 
@@ -40,15 +58,37 @@ class MongoMorda {
         }
     }
 
-    onFieldInputChange(field, value) {
+    onFieldInputChange(field) {
+
+        let value = this.arFields[field].element.val();
+        let rawValueJson = this.arFields[field].element.attr('data-raw-value-json');
+
+        switch (this.arFields[field].element.type) {
+            case 'checkbox':
+                value = this.arFields[field].element.checked;
+                break;
+            case 'select-one':
+                let rawValueJson = this.arFields[field].element.selectedOptions[0].dataset['rawValueJson'];
+                if( rawValueJson !== undefined ) {
+                    value = JSON.parse(rawValueJson);
+                }
+                break;
+        }
+
+        let operator = this.arFields[field].operator;
+
         try {
             let q = JSON.parse(this.qElement.val());
 
             if (value !== '') {
-                this.transformData(q, field, value);
+                this.updateQObject(field, q);
+                //this.transformData(q, field, value);
             } else {
                 delete q[field];
             }
+
+            console.log('Field changed : ' + field + ' value = ' + value + ' operator: '  + operator);
+            console.log(q);
 
             this.qElement.val(JSON.stringify(q));
             this.qElement.removeClass('is-invalid');
@@ -56,24 +96,6 @@ class MongoMorda {
             console.log(e);
             this.qElement.addClass('is-invalid');
         }
-    }
-
-    reload() {
-        let that = this;
-        let q_string = this.form.find('#q').val();
-        try {
-            let q = JSON.parse(q_string);
-
-
-        } catch (e) {
-            console.log(e);
-            this.form.find('#q').addClass('is-invalid');
-        }
-
-    }
-
-    addExtraField() {
-
     }
 
     bindAddFieldControl(id, idTemplatesContainer ) {
@@ -97,47 +119,7 @@ class MongoMorda {
 
             let templateHtml = $('#'+selectedField);
 
-            if( templateHtml.data('isAdded')===true) {
-                return;
-            }
-
-            let controlElement = templateHtml.find('[data-field-name]')
-            let fieldName = controlElement.data('fieldName');
-
-            if( fieldName === undefined || fieldName === '' ) {
-                console.error('cannot add field control - field name undefined');
-                return;
-            }
-
-            if( that.arFields[fieldName] !== undefined ) {
-                that.arFields[fieldName]['element'].addClass('alert-danger');
-                setTimeout(function () {
-                    that.arFields[fieldName]['element'].removeClass('alert-danger');
-                }, 2000);
-                return;
-            }
-
-            that.addField(fieldName, controlElement, controlElement.data('transform'));
-
-            let parentHtml = templateHtml.parent();
-            templateHtml.data('isAdded', true);
-
-            if( templateHtml.length === 0 ) {
-                console.error('template html not found for ID='+selectedField);
-                return;
-            }
-
-            let btnRemove = templateHtml.find('button[type=button]');
-
-            if( btnRemove.length === 1 ) {
-                btnRemove.on('click',function (e) {
-                    that.removeField(fieldName);
-                    btnRemove.off();
-                    parentHtml.append(templateHtml);
-                    templateHtml.data('isAdded', false);
-                });
-            }
-            that.addFieldSelector.parent().before(templateHtml);
+            that.addFieldFromTemplate(templateHtml);
 
 
 
@@ -146,23 +128,81 @@ class MongoMorda {
         });
     }
 
-
-
-
-    bindPredefinedSelector (id) {
+    addFieldFromTemplate(templateHtml) {
         let that = this;
-        this.predefinedSelector = $('#'+id);
-        this.predefinedSelector.on('change', function (e) {
-            that.loadPredefined(e.target.value);
-        });
+
+        if( templateHtml.data('isAdded')===true) {
+            return;
+        }
+
+        let controlElement = templateHtml.find('[data-field-name]')
+        let fieldName = controlElement.data('fieldName');
+
+        if( fieldName === undefined || fieldName === '' ) {
+            console.error('cannot add field control - field name undefined');
+            return;
+        }
+
+        if( that.arFields[fieldName] !== undefined ) {
+            that.arFields[fieldName]['element'].addClass('alert-danger');
+            setTimeout(function () {
+                that.arFields[fieldName]['element'].removeClass('alert-danger');
+            }, 2000);
+            return;
+        }
+
+        let parentHtml = templateHtml.parent();
+        templateHtml.data('isAdded', true);
+
+        if( templateHtml.length === 0 ) {
+            console.error('template html not found for ID='+selectedField);
+            return;
+        }
+
+        let btnRemove = templateHtml.find('button.mmorda-remove-field');
+
+        if( btnRemove.length === 1 ) {
+            btnRemove.on('click',function (e) {
+                btnRemove.off();
+                that.removeField(fieldName);
+                parentHtml.append(templateHtml);
+                templateHtml.data('isAdded', false);
+            });
+        }
+
+        let operatorSelector = templateHtml.find('button.mmorda-operator');
+
+        if( operatorSelector.length === 1 ) {
+            operatorSelector.data('mmordaFieldName', fieldName);
+            operatorSelector.next().find('.dropdown-item').each(function (k,v) {
+                let element = $(v);
+                let fieldNameSelectorThis = operatorSelector.data('mmordaFieldName');
+                element.attr('href', 'javascript:void(0)');
+                element.on('click', function (e) {
+                    let label = e.target.innerHTML;
+                    operatorSelector.html(label);
+                    operatorSelector.data('mordaModifier', element.data('mmordaOperator'));
+                    that.setFieldOperator(fieldNameSelectorThis, element.data('mmordaOperator'));
+                    that.onFieldInputChange(fieldNameSelectorThis);
+                });
+            });
+        } else {
+            operatorSelector = null;
+        }
+
+        that.addField(fieldName, controlElement, controlElement.data('transform'), '',);
+
+        that.arFields[fieldName].operatorSelector = operatorSelector;
+
+        that.addFieldSelector.parent().before(templateHtml);
     }
 
-    loadPredefined( q_preDefined ) {
-        this.arFields['q'].element.val(q_preDefined);
-        this.updateQ('q', q_preDefined);
+    setFieldOperator(field, operator) {
+        console.log(field + ' operator = ' + operator);
+        this.arFields[field]['operator'] = operator;
     }
 
-    addField(name, element, transform, options) {
+    addField(name, element, transform, operator, options) {
         if (this.arFields[name] !== undefined) {
             throw 'Field ' + name + ' already added';
         }
@@ -177,31 +217,15 @@ class MongoMorda {
         }
 
         element.on('change keyup blur', function (e) {
-            let value = e.target.value;
             let field = e.target.getAttribute('data-field-name');
-            let rawValueJson = e.target.getAttribute('data-raw-value-json');
-
-            console.log(e);
-
-            switch (e.target.type) {
-                case 'checkbox':
-                    value = e.target.checked;
-                    break;
-                case 'select-one':
-                    let rawJson = e.target.selectedOptions[0].dataset['rawValueJson'];
-                    if( rawJson !== undefined ) {
-                        value = JSON.parse(rawJson);
-                    }
-                    break;
-            }
-
-            that.onFieldInputChange(field, value);
+            that.onFieldInputChange(field);
         });
 
         that.arFields[name] = {
             element: element,
             transform: transform,
             options: options,
+            operator: operator
         };
 
         console.log(that.arFields);
@@ -213,30 +237,9 @@ class MongoMorda {
         }
 
         this.arFields[name].element.off();
-        delete this.arFields[name];
         this.onFieldInputChange(name,'');
+        delete this.arFields[name];
     }
-
-    addField_(fieldId, options) {
-        let that = this;
-
-        if( options === undefined )         options = {};
-        if( options.type === undefined )    options.type = 'string';
-
-        switch (options.type) {
-            case "$regex":
-                options.regexOptions = options.regexOptions !== undefined ? options.regexOptions : 'i';
-                break;
-        }
-
-        options.element = this.form.find('#' + fieldId.replace(/\./, '\\.'));
-
-        that.arFields[fieldId] = options;
-        that.arFields[fieldId].element.on();
-
-    }
-
-
 
     updateQ(field, value) {
         let q_string = this.form.find('#q').val();
@@ -258,20 +261,6 @@ class MongoMorda {
                     //console.log(v);
 
                     that.arFields[k].element.val(that.transformData(q, k, v, true));
-/*
-                    switch (that.arFields[k].transform) {
-                        case 'ipv4/long':
-                            that.arFields[k].element.val(that.int2ip(v));
-                            break;
-                        case '$regex':
-                            that.arFields[k].element.val(v['$regex']);
-                            break;
-                        case 'string':
-                        default:
-                            that.arFields[k].element.val(v);
-                            break;
-                    }
-*/
                 });
 
                 console.log(that.arFields);
@@ -292,7 +281,186 @@ class MongoMorda {
         }
     }
 
+    updateFieldControls(field, q) {
+        let that = this;
+
+        if( q[field] === undefined ) {
+            return;
+        }
+
+        let fnTransform = function(v) { return v;};
+
+        switch (this.arFields[field].transform) {
+            case MongoMorda.TRANSFORM_IPV4_2_LONG:
+                fnTransform = function (v) { return that.int2ip(v); };
+                break;
+        }
+
+        let operator = '$eq';
+        let value = q[field];
+
+        if( typeof q[field] === 'object' ) {
+            if( q[field]['$ne'] !== undefined ) {
+                operator = '$ne';
+                value = fnTransform(q[field]['$ne']);
+            }
+            if( q[field]['$eq'] !== undefined ) {
+                operator = '$eq';
+                value = fnTransform(q[field]['$eq']);
+            }
+            if( q[field]['$lt'] !== undefined ) {
+                operator = '$lt';
+                value = fnTransform(q[field]['$lt']);
+            }
+            if( q[field]['$lte'] !== undefined ) {
+                operator = '$lte';
+                value = fnTransform(q[field]['$lte']);
+            }
+            if( q[field]['$gt'] !== undefined ) {
+                operator = '$gt';
+                value = fnTransform(q[field]['$gt']);
+            }
+            if( q[field]['$gte'] !== undefined ) {
+                operator = '$gte';
+                value = fnTransform(q[field]['$gte']);
+            }
+            if( q[field]['$in'] !== undefined ) {
+                operator = '$in';
+                value = $.map(q[field]['$in'],fnTransform).join(',');
+            }
+            if( q[field]['$nin'] !== undefined ) {
+                operator = '$nin';
+                value = $.map(q[field]['$nin'],fnTransform).join(',');
+            }
+        }
+
+        if( operator !== null && this.arFields[field].operatorSelector !== null) {
+            let elemOperator = this.arFields[field].operatorSelector.next().find('[data-mmorda-operator="'+operator+'"]');
+            if( elemOperator.length === 1 ) {
+                this.arFields[field].operatorSelector.html(elemOperator.html());
+            }
+            //this.updateOperatorSelector(field, operator);
+        }
+
+
+
+        this.arFields[field].element.val(value);
+
+        return;
+
+        let transform = this.arFields[field].transform;
+        let element = this.arFields[field].element;
+
+
+        switch (transform) {
+            case MongoMorda.TRANSFORM_IPV4_2_LONG:
+                switch (operator) {
+                    default:
+                    case '':
+                    case '$eq':
+                        if( typeof value === 'object' ) {
+                            if( value['$in'] !== undefined ) {
+                                return $.map(value['$in'], that.int2ip).join(',');
+                            }
+                            if( value['$nin'] !== undefined ) {
+                                return $.map(value['$nin'], that.int2ip).join(',');
+                            }
+                        }
+
+                        element.val(that.ip2int(value));
+                        break;
+                    case '$in':
+                        q[field] = {"$in": $.map(value.split(','), that.ip2int)};
+                        break;
+                }
+                break;
+            default:
+                switch (operator) {
+
+                }
+        }
+    }
+
+    updateOperatorSelector( field, operator ) {
+
+    }
+
+    resetFieldControls(field) {
+        this.arFields[field].element.val('');
+    }
+
+    updateQObject(field, q) {
+        let that = this;
+        let operator = this.arFields[field].operator;
+        let transform = this.arFields[field].transform;
+        let value = this.arFields[field].element.val();
+
+        let fnTransform = function (v) { return v; };
+        let fnOperator = function (v) { return fnTransform(v); };
+
+        switch (operator) {
+            case '$eq':
+                fnOperator = function (v) {return fnTransform(v); }
+                break;
+            case '$gt':
+                fnOperator = function (v) {return {"$gt":fnTransform(v)}; }
+                break;
+            case '$gte':
+                fnOperator = function (v) {return {"$gte":fnTransform(v)}; }
+                break;
+            case '$lt':
+                fnOperator = function (v) {return {"$lt":fnTransform(v)}; }
+                break;
+            case '$lte':
+                fnOperator = function (v) {return {"$lte":fnTransform(v)}; }
+                break;
+            case '$ne':
+                fnOperator = function (v) {return {"$ne":fnTransform(v)}; }
+                break;
+            case '$in':
+                fnOperator = function (v) {return {"$in": $.map(value.split(','), fnTransform)}; }
+                break;
+            case '$nin':
+                fnOperator = function (v) {return {"$nin": $.map(value.split(','), fnTransform)}; }
+                break;
+        }
+
+        switch (transform) {
+            case MongoMorda.TRANSFORM_IPV4_2_LONG:
+                fnTransform = function (v) { return that.ip2int(v) };
+                break;
+        }
+
+        q[field] = fnOperator(value);
+
+        return;
+
+        switch (transform) {
+            default:
+                q[field] = fnOperator(value);
+                break;
+            case MongoMorda.TRANSFORM_IPV4_2_LONG:
+                switch (operator) {
+                    default:
+                    case '$eq':
+                        q[field] = that.ip2int(value);
+                        break;
+                    case '$in':
+                        q[field] = {"$in": $.map(value.split(','), that.ip2int)};
+                        break;
+                }
+                break;
+        }
+
+    }
+
     transformData(q, field, value, toInput) {
+
+        let that = this;
+
+        console.log(this.arFields[field].operator);
+        console.log(this.arFields[field].transform);
+
         switch (this.arFields[field].transform) {
             case 'regex':
                 if( toInput === true ) {
@@ -335,9 +503,34 @@ class MongoMorda {
                 break;
             case 'ipv4-long':
                 if( toInput === true ) {
+
+                    if( typeof value === 'object' ) {
+                        if( value['$in'] !== undefined ) {
+                            return $.map(value['$in'], that.int2ip).join(',');
+                        }
+                        if( value['$nin'] !== undefined ) {
+                            return $.map(value['$nin'], that.int2ip).join(',');
+                        }
+                    }
                     return this.int2ip(value);
                 }
-                q[field] = this.ip2int(value);
+
+                switch (this.arFields[field].operator) {
+                    default:
+                    case '$eq':
+                        q[field] = that.ip2int(value);
+                        break;
+                    case '$ne':
+                        q[field] = {"$ne": that.ip2int(value)};
+                        break;
+                    case '$in':
+                        q[field] = {"$in": $.map(value.split(','), that.ip2int)};
+                        break;
+                    case '$nin':
+                        q[field] = {"$nin": $.map(value.split(','), that.ip2int)};
+                        break;
+                }
+
                 break;
             case 'int':
                 if( toInput === true ) {
@@ -355,16 +548,21 @@ class MongoMorda {
         }
     }
 
-    setQ__regex(q, value) {
-
+    bindPredefinedSelector (id) {
+        let that = this;
+        this.predefinedSelector = $('#'+id);
+        this.predefinedSelector.on('change', function (e) {
+            that.loadPredefined(e.target.value);
+        });
     }
 
-    setField__regex(value) {
-
+    loadPredefined( q_preDefined ) {
+        this.arFields['q'].element.val(q_preDefined);
+        this.updateQ('q', q_preDefined);
     }
 
-    int2ip (ipInt) {
-        return ( (ipInt>>>24) +'.' + (ipInt>>16 & 255) +'.' + (ipInt>>8 & 255) +'.' + (ipInt & 255) );
+    int2ip(ipInt) {
+        return ((ipInt >>> 24) + '.' + (ipInt >> 16 & 255) + '.' + (ipInt >> 8 & 255) + '.' + (ipInt & 255));
     }
 
     ip2int(ip) {
