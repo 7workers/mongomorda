@@ -6,6 +6,10 @@ class MongoMorda {
 
     static TRANSFORM_IPV4_2_LONG = 'ipv4/long';
 
+    /**
+     *
+     * @param qElement JQuery element of input field with JSON query (q)
+     */
     constructor(qElement) {
         this.qElement = qElement;
         let that = this;
