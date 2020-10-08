@@ -38,7 +38,7 @@ class MongoMorda {
 
                 }
 
-                console.log('field update: ' + k + ' value: ' + v);
+                console.log('field updated directly typing in the Q input: ' + k + ' value: ' + v);
 
                 that.updateFieldControls(k, q);
 
@@ -62,36 +62,40 @@ class MongoMorda {
         }
     }
 
-    onFieldInputChange(field) {
+    /**
+     *
+     * @param fieldName
+     */
+    onFieldControlStateChange(fieldName) {
 
-        let value = this.arFields[field].element.val();
-        let rawValueJson = this.arFields[field].element.attr('data-raw-value-json');
+        let value = this.arFields[fieldName].element.val();
+        let rawValueJson = this.arFields[fieldName].element.attr('data-raw-value-json');
 
-        switch (this.arFields[field].element.type) {
+        switch (this.arFields[fieldName].element.type) {
             case 'checkbox':
-                value = this.arFields[field].element.checked;
+                value = this.arFields[fieldName].element.checked;
                 break;
             case 'select-one':
-                let rawValueJson = this.arFields[field].element.selectedOptions[0].dataset['rawValueJson'];
+                let rawValueJson = this.arFields[fieldName].element.selectedOptions[0].dataset['rawValueJson'];
                 if( rawValueJson !== undefined ) {
                     value = JSON.parse(rawValueJson);
                 }
                 break;
         }
 
-        let operator = this.arFields[field].operator;
+        let operator = this.arFields[fieldName].operator;
 
         try {
             let q = JSON.parse(this.qElement.val());
 
             if (value !== '') {
-                this.updateQObject(field, q);
+                this.updateQObject(fieldName, q);
                 //this.transformData(q, field, value);
             } else {
-                delete q[field];
+                delete q[fieldName];
             }
 
-            console.log('Field changed : ' + field + ' value = ' + value + ' operator: '  + operator);
+            console.log('Field changed : ' + fieldName + ' value = ' + value + ' operator: '  + operator);
             console.log(q);
 
             this.qElement.val(JSON.stringify(q));
@@ -187,7 +191,7 @@ class MongoMorda {
                     operatorSelector.html(label);
                     operatorSelector.data('mordaModifier', element.data('mmordaOperator'));
                     that.setFieldOperator(fieldNameSelectorThis, element.data('mmordaOperator'));
-                    that.onFieldInputChange(fieldNameSelectorThis);
+                    that.onFieldControlStateChange(fieldNameSelectorThis);
                 });
             });
         } else {
@@ -222,7 +226,7 @@ class MongoMorda {
 
         element.on('change keyup blur', function (e) {
             let field = e.target.getAttribute('data-field-name');
-            that.onFieldInputChange(field);
+            that.onFieldControlStateChange(field);
         });
 
         that.arFields[name] = {
@@ -241,7 +245,23 @@ class MongoMorda {
         }
 
         this.arFields[name].element.off();
-        this.onFieldInputChange(name,'');
+
+
+        try {
+            let q = JSON.parse(this.qElement.val());
+
+            delete q[name];
+
+            console.log('Field removed changed : ' + name);
+            console.log(q);
+
+            this.qElement.val(JSON.stringify(q));
+            this.qElement.removeClass('is-invalid');
+        } catch (e) {
+            console.log(e);
+            this.qElement.addClass('is-invalid');
+        }
+
         delete this.arFields[name];
     }
 
@@ -285,75 +305,82 @@ class MongoMorda {
         }
     }
 
-    updateFieldControls(field, q) {
+
+
+    /**
+     * This method should update form control element, fired when something is typed directly into query text input field
+     * @param fieldName
+     * @param dQuery object holding query as seen in the input box
+     */
+    updateFieldControls(fieldName, dQuery) {
         let that = this;
 
-        if( q[field] === undefined ) {
+        if( dQuery[fieldName] === undefined ) {
             return;
         }
 
         let fnTransform = function(v) { return v;};
 
-        switch (this.arFields[field].transform) {
+        switch (this.arFields[fieldName].transform) {
             case MongoMorda.TRANSFORM_IPV4_2_LONG:
                 fnTransform = function (v) { return that.int2ip(v); };
                 break;
         }
 
         let operator = '$eq';
-        let value = q[field];
+        let value = dQuery[fieldName];
 
-        if( typeof q[field] === 'object' ) {
-            if( q[field]['$ne'] !== undefined ) {
+        if( typeof dQuery[fieldName] === 'object' ) {
+            if( dQuery[fieldName]['$ne'] !== undefined ) {
                 operator = '$ne';
-                value = fnTransform(q[field]['$ne']);
+                value = fnTransform(dQuery[fieldName]['$ne']);
             }
-            if( q[field]['$eq'] !== undefined ) {
+            if( dQuery[fieldName]['$eq'] !== undefined ) {
                 operator = '$eq';
-                value = fnTransform(q[field]['$eq']);
+                value = fnTransform(dQuery[fieldName]['$eq']);
             }
-            if( q[field]['$lt'] !== undefined ) {
+            if( dQuery[fieldName]['$lt'] !== undefined ) {
                 operator = '$lt';
-                value = fnTransform(q[field]['$lt']);
+                value = fnTransform(dQuery[fieldName]['$lt']);
             }
-            if( q[field]['$lte'] !== undefined ) {
+            if( dQuery[fieldName]['$lte'] !== undefined ) {
                 operator = '$lte';
-                value = fnTransform(q[field]['$lte']);
+                value = fnTransform(dQuery[fieldName]['$lte']);
             }
-            if( q[field]['$gt'] !== undefined ) {
+            if( dQuery[fieldName]['$gt'] !== undefined ) {
                 operator = '$gt';
-                value = fnTransform(q[field]['$gt']);
+                value = fnTransform(dQuery[fieldName]['$gt']);
             }
-            if( q[field]['$gte'] !== undefined ) {
+            if( dQuery[fieldName]['$gte'] !== undefined ) {
                 operator = '$gte';
-                value = fnTransform(q[field]['$gte']);
+                value = fnTransform(dQuery[fieldName]['$gte']);
             }
-            if( q[field]['$in'] !== undefined ) {
+            if( dQuery[fieldName]['$in'] !== undefined ) {
                 operator = '$in';
-                value = $.map(q[field]['$in'],fnTransform).join(',');
+                value = $.map(dQuery[fieldName]['$in'],fnTransform).join(',');
             }
-            if( q[field]['$nin'] !== undefined ) {
+            if( dQuery[fieldName]['$nin'] !== undefined ) {
                 operator = '$nin';
-                value = $.map(q[field]['$nin'],fnTransform).join(',');
+                value = $.map(dQuery[fieldName]['$nin'],fnTransform).join(',');
             }
         }
 
-        if( operator !== null && this.arFields[field].operatorSelector !== null) {
-            let elemOperator = this.arFields[field].operatorSelector.next().find('[data-mmorda-operator="'+operator+'"]');
+        if( this.arFields[fieldName].operatorSelector !== null) {
+            let elemOperator = this.arFields[fieldName].operatorSelector.next().find('[data-mmorda-operator="'+operator+'"]');
             if( elemOperator.length === 1 ) {
-                this.arFields[field].operatorSelector.html(elemOperator.html());
+                this.arFields[fieldName].operatorSelector.html(elemOperator.html());
             }
             //this.updateOperatorSelector(field, operator);
         }
 
 
 
-        this.arFields[field].element.val(value);
+        this.arFields[fieldName].element.val(value);
 
         return;
 
-        let transform = this.arFields[field].transform;
-        let element = this.arFields[field].element;
+        let transform = this.arFields[fieldName].transform;
+        let element = this.arFields[fieldName].element;
 
 
         switch (transform) {
@@ -374,7 +401,7 @@ class MongoMorda {
                         element.val(that.ip2int(value));
                         break;
                     case '$in':
-                        q[field] = {"$in": $.map(value.split(','), that.ip2int)};
+                        dQuery[fieldName] = {"$in": $.map(value.split(','), that.ip2int)};
                         break;
                 }
                 break;
@@ -393,11 +420,18 @@ class MongoMorda {
         this.arFields[field].element.val('');
     }
 
-    updateQObject(field, q) {
+    /**
+     * Fired when control element changed and text representation of query needs to be updated
+     * dQuery then will be parsed into JSON and pasted into input text
+     *
+     * @param fieldName
+     * @param dQuery object holding query typed into text input field
+     */
+    updateQObject(fieldName, dQuery) {
         let that = this;
-        let operator = this.arFields[field].operator;
-        let transform = this.arFields[field].transform;
-        let value = this.arFields[field].element.val();
+        let operator = this.arFields[fieldName].operator;
+        let transform = this.arFields[fieldName].transform;
+        let value = this.arFields[fieldName].element.val();
 
         let fnTransform = function (v) { return v; };
         let fnOperator = function (v) { return fnTransform(v); };
@@ -435,22 +469,22 @@ class MongoMorda {
                 break;
         }
 
-        q[field] = fnOperator(value);
+        dQuery[fieldName] = fnOperator(value);
 
         return;
 
         switch (transform) {
             default:
-                q[field] = fnOperator(value);
+                dQuery[fieldName] = fnOperator(value);
                 break;
             case MongoMorda.TRANSFORM_IPV4_2_LONG:
                 switch (operator) {
                     default:
                     case '$eq':
-                        q[field] = that.ip2int(value);
+                        dQuery[fieldName] = that.ip2int(value);
                         break;
                     case '$in':
-                        q[field] = {"$in": $.map(value.split(','), that.ip2int)};
+                        dQuery[fieldName] = {"$in": $.map(value.split(','), that.ip2int)};
                         break;
                 }
                 break;
