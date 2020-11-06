@@ -1,7 +1,10 @@
 class MongoMorda {
     form;
+    formId;
     arFields = {};
+    arFormFields = {};
     fieldTemplateContainer;
+    formFieldsContainer;
     addFieldSelector;
 
     static TRANSFORM_IPV4_2_LONG = 'ipv4/long';
@@ -9,13 +12,176 @@ class MongoMorda {
     /**
      *
      * @param qElement JQuery element of input field with JSON query (q)
+     * @param formFieldsContainer
+     * @param cfg config object
      */
-    constructor(qElement) {
+    constructor(qElement, formFieldsContainer, cfg) {
         this.qElement = qElement;
+        this.cfg = cfg;
+        this.formFieldsContainer = formFieldsContainer
         let that = this;
+
+
         qElement.on('change keyup blur', function (e) {
             that.onQTextInputChange(e.target.value);
         });
+    }
+
+    init() {
+        let that = this
+
+        $.each(this.cfg.fields, function (fieldName, eachFieldConfig) {
+            if( eachFieldConfig.control?.alwaysVisible === true ) {
+                that.addFormControl(fieldName, eachFieldConfig);
+            }
+            that.cfg.selectAddField.append($(`<option value="${fieldName}">${eachFieldConfig.label}</option>`));
+        });
+
+        that.cfg.selectAddField.on('change', function (e) {
+            let fieldToAdd = e.target.value;
+            that.addFormControl(fieldToAdd, that.cfg.fields[fieldToAdd]);
+        });
+
+    }
+
+    addFormControl(fieldName, fieldConfig) {
+        if( this.arFormFields[fieldName] !== undefined ) {
+            throw "Field already added: " + fieldName
+        }
+
+        let id = `mmorda-f-control-${this.formId}-${fieldName}`;
+
+        let html = this.htmlFormControl(id, fieldName, fieldConfig.label, fieldConfig)
+
+        this.arFormFields[fieldName] = {
+            cfg: fieldConfig,
+            domElement: html
+        };
+        console.log(html)
+
+        this.formFieldsContainer.append(html);
+
+        return;
+
+        if( fieldConfig.control?.options !== undefined ) {
+            // SELECT with options
+
+            let arOptionLabels = [];
+
+            $.each(fieldConfig.control.options, function (k,v){
+                arOptionLabels.push(v.label);
+            });
+
+            let div = $('<div>', {
+                id: "m-morda-f-" + this.formId + '-' + fieldConfig.field,
+                class: "form-group"
+            });
+
+            let select = this.htmlSelect(arOptionLabels);
+
+            select.on('change', function (e) {
+
+            });
+
+            this.formFieldsContainer.append(select);
+
+            console.log(select);
+
+
+        }
+    }
+
+    htmlFormControl(id, fieldName, label, cfg) {
+        let that = this;
+
+        let control = this.htmlControl(id, label, cfg);
+
+        let div = $(`<div class="form-group" id="${id}">
+            <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">${label}</span>
+                    <div id="phOperators"></div>
+                </div>
+                <input id="phControl"/>
+                <div class="input-group-append"><button class="btn btn-outline-secondary" type="button" data-for-field="${fieldName}">X</button></div>
+            </div>
+        </div>`);
+
+        let operators = $(`            
+                    <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        EQUALS
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" data-mmorda-operator="$eq">EQUALS</a>
+                        <a class="dropdown-item" data-mmorda-operator="$ne">NOT EQUALS</a>
+                    </div>`);
+
+        div.find('#phOperators').replaceWith(operators);
+        div.find('#phControl').replaceWith(control);
+        div.find('button').last().on('click', function(e) {that.onRemoveFormControlClicked(e.target);});
+
+        return div;
+    }
+
+    htmlControl(id, label, cfg) {
+        if( cfg.control?.options !== undefined ) {
+            let arOptionLabels = [];
+
+            $.each(cfg.control.options, function (k,v){
+                arOptionLabels.push(v.label);
+            });
+
+            let htmlSelect = this.htmlSelect(arOptionLabels, cfg);
+
+            return htmlSelect;
+        }
+
+        let htmlInput = this.htmlInput(cfg)
+
+        return htmlInput;
+    }
+
+    htmlSelect(options, cfg) {
+        let that = this;
+        let select = $('<select>', {
+            data: {
+                mmordaFieldName: cfg.field
+            },
+            class: "form-control"
+        });
+
+        $.each(options, function (k, option_each) {
+            select.append(that.htmlOption(option_each))
+        });
+
+        select.on('change', function (e) {
+            that.onFormControlChanged(e.target);
+        });
+
+        return select;
+    }
+
+    htmlInput(cfg) {
+        let input = $('<input>', {
+            class: "form-control"
+        });
+
+        return input;
+    }
+
+    htmlOption(label) {
+        return $('<option>' + label + '</option>');
+    }
+
+    onFormControlChanged(target) {
+        console.log(target);
+    }
+
+    onRemoveFormControlClicked(target) {
+        let formControlField = $(target).data('forField');
+        console.log(formControlField);
+        this.arFormFields[formControlField].domElement.remove();
+        delete this.arFormFields[formControlField]
     }
 
     // when typing directly in "q" input field

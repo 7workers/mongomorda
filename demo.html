@@ -279,9 +279,98 @@
 
     $( document ).ready(function() {
 
+        let mordaConfig = {
+            selectAddField: $('#addFieldCtrl'),
+            fields: {
+                "affiliate": {
+                    label: "AFFILIATE",
+                    dataType: "string",
+                    fieldDataType: "string",
+                    allowNull: true,
+                    control: {
+                        alwaysVisible: true
+                    }
+                },
+                "connectivity.primary.ipv4": {
+                    label: "PRIMARY IP (ipv4)",
+                    dataType: "ipv4",
+                    fieldDataType: "int",
+                    allowNull: true
+                },
+                "detected.location" : {
+                    label: "COUNTRY DETECTED",
+                    fieldDataType: "array[string]",
+                    dataType: "string(2)/uppercase",
+                },
+                "E" : {
+                    label: "EMAIL",
+                    fieldDataType: "string",
+                    dataType: "email/lowercase",
+                },
+                "folder" : {
+                    label: "FOLDER",
+                    fieldDataType: "string",
+                    dataType: "string",
+                    control: {
+                        multiSelect: true,
+                        options: [
+                            {
+                                label: "DIRECT MESSAGES",
+                                value: "D"
+                            },
+                            {
+                                label: "UPDATES",
+                                value: "U"
+                            },
+                            {
+                                label: "SPAM",
+                                value: "S"
+                            }
+                        ]
+                    }
+                },
+                "S" : {
+                    label: "SIGNAL",
+                    fieldDataType: "string",
+                    dataType: "string",
+                    control: {
+                        alwaysVisible: true,
+                        options: [
+                            {
+                                label: "ALL"
+                            },
+                            {
+                                value: "0",
+                                label: "PASSED"
+                            },
+                            {
+                                value: "1",
+                                label: "BLOCKED"
+                            },
+                            {
+                                value: "2",
+                                label: "FLAGGED"
+                            },
+                            {
+                                value: "3",
+                                label: "FRAUDED"
+                            },
+                            {
+                                value: {"$in": ["1", "2", "3"]},
+                                label: "BLOCKED/FLAGGED/FRAUDED"
+                            }
+                        ]
+                    }
+                }
+            }
+        };
 
 
-        morda1 = new MongoMorda($('#q'));
+        morda1 = new MongoMorda($('#q'), $('#form1'), mordaConfig);
+
+        morda1.init();
+
+        return;
 
         //morda1.addField('f1');
         //morda1.addField('ip', {type: 'ipv4/long'});
