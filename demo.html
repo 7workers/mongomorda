@@ -7,7 +7,7 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.js" crossorigin="anonymous"></script>
     <script src="mongomorda.js"></script>
     <title>Mongo Morda Demo</title>
 
@@ -367,34 +367,7 @@
 
 
         morda1 = new MongoMorda($('#q'), $('#form1'), mordaConfig);
-
         morda1.init();
-
-        return;
-
-        //morda1.addField('f1');
-        //morda1.addField('ip', {type: 'ipv4/long'});
-        //morda1.addField('text.field1', {type: '$regex'});
-        //morda1.addField('hasField1', {type: 'is-null'});
-        //morda1.addField('gender');
-        //morda1.addField('hasAff', {type: 'not-null'});
-        //morda1.addField('signal', {type: 'int'});
-
-        morda1.bindPredefinedSelector('predefined');
-        morda1.bindAddFieldControl('addFieldCtrl', 'field-templates');
-
-        //morda1.reload();
-
-        let q_param = (new URLSearchParams(window.location.search)).get('q');
-
-        if( q_param ) {
-            morda1.arFields['q'].element.val(q_param);
-            morda1.updateQ('q', q_param);
-        }
-
-
-        //form.find('#f1').on('change keyup blur', handleInputChange);
-        //form.find('#q').on('change keyup blur', handleInputChange);
     });
 
 

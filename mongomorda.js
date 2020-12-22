@@ -49,17 +49,20 @@ class MongoMorda {
             throw "Field already added: " + fieldName
         }
 
-        let id = `mmorda-f-control-${this.formId}-${fieldName}`;
+        let fc = new MongomordaFormControl(this, this.form, fieldName, fieldConfig);
 
-        let html = this.htmlFormControl(id, fieldName, fieldConfig.label, fieldConfig)
 
-        this.arFormFields[fieldName] = {
+
+        //let html = this.htmlFormControl(id, fieldName, fieldConfig.label, fieldConfig)
+
+        this.arFields[fieldName] = {
             cfg: fieldConfig,
-            domElement: html
+            mmFormControl: fc
         };
-        console.log(html)
+        //console.debug(html)
 
-        this.formFieldsContainer.append(html);
+        //this.formFieldsContainer.append(html);
+        this.formFieldsContainer.append(fc.getFormGroup());
 
         return;
 
@@ -91,90 +94,8 @@ class MongoMorda {
         }
     }
 
-    htmlFormControl(id, fieldName, label, cfg) {
-        let that = this;
-
-        let control = this.htmlControl(id, label, cfg);
-
-        let div = $(`<div class="form-group" id="${id}">
-            <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                    <span class="input-group-text">${label}</span>
-                    <div id="phOperators"></div>
-                </div>
-                <input id="phControl"/>
-                <div class="input-group-append"><button class="btn btn-outline-secondary" type="button" data-for-field="${fieldName}">X</button></div>
-            </div>
-        </div>`);
-
-        let operators = $(`            
-                    <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        EQUALS
-                    </button>
-                    <div class="dropdown-menu">
-                        <a class="dropdown-item" data-mmorda-operator="$eq">EQUALS</a>
-                        <a class="dropdown-item" data-mmorda-operator="$ne">NOT EQUALS</a>
-                    </div>`);
-
-        div.find('#phOperators').replaceWith(operators);
-        div.find('#phControl').replaceWith(control);
-        div.find('button').last().on('click', function(e) {that.onRemoveFormControlClicked(e.target);});
-
-        return div;
-    }
-
-    htmlControl(id, label, cfg) {
-        if( cfg.control?.options !== undefined ) {
-            let arOptionLabels = [];
-
-            $.each(cfg.control.options, function (k,v){
-                arOptionLabels.push(v.label);
-            });
-
-            let htmlSelect = this.htmlSelect(arOptionLabels, cfg);
-
-            return htmlSelect;
-        }
-
-        let htmlInput = this.htmlInput(cfg)
-
-        return htmlInput;
-    }
-
-    htmlSelect(options, cfg) {
-        let that = this;
-        let select = $('<select>', {
-            data: {
-                mmordaFieldName: cfg.field
-            },
-            class: "form-control"
-        });
-
-        $.each(options, function (k, option_each) {
-            select.append(that.htmlOption(option_each))
-        });
-
-        select.on('change', function (e) {
-            that.onFormControlChanged(e.target);
-        });
-
-        return select;
-    }
-
-    htmlInput(cfg) {
-        let input = $('<input>', {
-            class: "form-control"
-        });
-
-        return input;
-    }
-
-    htmlOption(label) {
-        return $('<option>' + label + '</option>');
-    }
-
-    onFormControlChanged(target) {
-        console.log(target);
+    onFormControlChanged(fieldName) {
+        console.log(fieldName);
     }
 
     onRemoveFormControlClicked(target) {
@@ -187,43 +108,41 @@ class MongoMorda {
     // when typing directly in "q" input field
     onQTextInputChange( v ) {
         let that = this;
+
         try {
             let q = JSON.parse(v);
             let prevValue = null;
 
             $.each(q, function (k, v) {
-                if (that.arFields[k] === undefined) {
-                    return;
-                }
-                prevValue = that.arFields[k].element.data('prevQValue');
-                if( prevValue === v ) {
-                    return;
-                }
+                if (that.arFields[k] === undefined) { return; }
+
+                let mmFormControl = that.arFields[k].mmFormControl;
+
+                prevValue = mmFormControl.getQueryFieldValue();
+
+                if( prevValue === v ) { return; }
 
                 if( typeof v === "object" ) {
-
                 }
 
                 console.log('field updated directly typing in the Q input: ' + k + ' value: ' + v);
 
-                that.updateFieldControls(k, q);
-
-                return;
-                that.arFields[k].element.data('prevQValue', v);
-
-                that.arFields[k].element.val(that.transformData(q, k, v, true));
+                mmFormControl.onQueryChanged(q);
             });
 
+            // unset/remove deleted fields
+            /*
             $.each(that.arFields, function (k,v) {
                 if( q[k] !== undefined ) {
                     return;
                 }
                 that.arFields[k].element.val('');
             });
+             */
 
             this.qElement.removeClass('is-invalid');
         } catch (e) {
-            console.error(e);
+            console.debug(e);
             this.qElement.addClass('is-invalid');
         }
     }
@@ -234,9 +153,11 @@ class MongoMorda {
      */
     onFieldControlStateChange(fieldName) {
 
-        let value = this.arFields[fieldName].element.val();
-        let rawValueJson = this.arFields[fieldName].element.attr('data-raw-value-json');
+        let mmFormControl = this.arFields[fieldName].mmFormControl;
+        let value = mmFormControl.getQueryFieldValue();
+        //let rawValueJson = this.arFields[fieldName].element.attr('data-raw-value-json');
 
+        /*
         switch (this.arFields[fieldName].element.type) {
             case 'checkbox':
                 value = this.arFields[fieldName].element.checked;
@@ -248,14 +169,16 @@ class MongoMorda {
                 }
                 break;
         }
+        */
 
-        let operator = this.arFields[fieldName].operator;
+
+        let operator = mmFormControl.getOperator();
 
         try {
             let q = JSON.parse(this.qElement.val());
 
             if (value !== '') {
-                this.updateQObject(fieldName, q);
+                mmFormControl.updateQuery(q);
                 //this.transformData(q, field, value);
             } else {
                 delete q[fieldName];
@@ -271,7 +194,7 @@ class MongoMorda {
             this.qElement.addClass('is-invalid');
         }
     }
-
+/*
     bindAddFieldControl(id, idTemplatesContainer ) {
         let that = this;
         this.addFieldSelector = $('#' + id);
@@ -295,13 +218,11 @@ class MongoMorda {
 
             that.addFieldFromTemplate(templateHtml);
 
-
-
-
-            //that.loadPredefined(e.target.value);
         });
     }
+*/
 
+/*
     addFieldFromTemplate(templateHtml) {
         let that = this;
 
@@ -370,12 +291,16 @@ class MongoMorda {
 
         that.addFieldSelector.parent().before(templateHtml);
     }
+*/
 
+/*
     setFieldOperator(field, operator) {
         console.log(field + ' operator = ' + operator);
         this.arFields[field]['operator'] = operator;
     }
+*/
 
+/*
     addField(name, element, transform, operator, options) {
         if (this.arFields[name] !== undefined) {
             throw 'Field ' + name + ' already added';
@@ -404,7 +329,9 @@ class MongoMorda {
 
         console.log(that.arFields);
     }
+*/
 
+/*
     removeField(name) {
         if( this.arFields[name] === undefined ) {
             throw name + ' field not exists';
@@ -430,6 +357,7 @@ class MongoMorda {
 
         delete this.arFields[name];
     }
+*/
 
     updateQ(field, value) {
         let q_string = this.form.find('#q').val();
@@ -752,6 +680,7 @@ class MongoMorda {
         }
     }
 
+/*
     bindPredefinedSelector (id) {
         let that = this;
         this.predefinedSelector = $('#'+id);
@@ -759,11 +688,14 @@ class MongoMorda {
             that.loadPredefined(e.target.value);
         });
     }
+*/
 
+/*
     loadPredefined( q_preDefined ) {
         this.arFields['q'].element.val(q_preDefined);
         this.updateQ('q', q_preDefined);
     }
+*/
 
     int2ip(ipInt) {
         return ((ipInt >>> 24) + '.' + (ipInt >> 16 & 255) + '.' + (ipInt >> 8 & 255) + '.' + (ipInt & 255));
@@ -773,4 +705,124 @@ class MongoMorda {
         return ip.split('.').reduce(function(ipInt, octet) { return (ipInt<<8) + parseInt(octet, 10)}, 0) >>> 0;
     }
 
+}
+
+class MongomordaFormControl {
+    fieldName;
+    id;
+    label;
+    form;
+    cfg
+    morda;
+    controlElement;
+
+    constructor(morda, form, fieldName, config) {
+        this.morda = morda;
+        this.fieldName = fieldName;
+        this.id = `mmorda-f-control-${this.fieldName}`;
+        this.label = config.label;
+        this.cfg = config;
+        this.controlElement = this.getControl();
+    }
+
+    onChanged() {
+        console.debug('control changed: ' + this.fieldName + ' (' + this.label + ')');
+        this.morda.onFieldControlStateChange(this.fieldName);
+    }
+
+    updateQuery(q) {
+        q[this.fieldName] = this.getQueryFieldValue();
+    }
+
+    onQueryChanged(q) {
+
+    }
+
+    getFormGroup() {
+        let that = this;
+
+        let div = $(`<div class="form-group" id="${this.id}">
+            <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">${this.label}</span>
+                    <div id="phOperators"></div>
+                </div>
+                <input id="phControl"/>
+                <div class="input-group-append"><button class="btn btn-outline-secondary" type="button" data-for-field="${this.fieldName}">X</button></div>
+            </div>
+        </div>`);
+
+        let operators = $(`            
+                    <button class="btn btn-outline-secondary dropdown-toggle mmorda-operator" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        EQUALS
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" data-mmorda-operator="$eq">EQUALS</a>
+                        <a class="dropdown-item" data-mmorda-operator="$ne">NOT EQUALS</a>
+                    </div>`);
+
+        div.find('#phOperators').replaceWith(operators);
+        div.find('#phControl').replaceWith(this.controlElement);
+        div.find('button').last().on('click', function(e) {that.onRemoveFormControlClicked(e.target);});
+
+        return div;
+    }
+
+    getControl() {
+        if( this.cfg.control?.options !== undefined ) {
+            let arOptionLabels = [];
+
+            $.each(this.cfg.control.options, function (k,v){
+                arOptionLabels.push(v.label);
+            });
+
+            let htmlSelect = this.getSelect(arOptionLabels);
+
+            return htmlSelect;
+        }
+
+        let htmlInput = this.getInput()
+
+        return htmlInput;
+    }
+
+    getSelect(options) {
+        let that = this;
+        let select = $('<select>', {
+            data: {
+                mmordaFieldName: this.fieldName
+            },
+            class: "form-control"
+        });
+
+        $.each(options, function (k, option_each) {
+            select.append(that.getSelectOption(option_each))
+        });
+
+        select.on('change', function (e) {
+            that.onChanged(e.target);
+        });
+
+        return select;
+    }
+
+    getSelectOption(label) {
+        return $('<option>' + label + '</option>');
+    }
+
+    getInput(cfg) {
+        let input = $('<input>', {
+            class: "form-control"
+        });
+
+        return input;
+    }
+
+    getQueryFieldValue() {
+        return "opa";
+    }
+
+    getOperator() {
+        return null;
+    }
 }
